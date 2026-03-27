@@ -1,12 +1,23 @@
 import telebot
 from telebot import types
 import os
+from flask import Flask
+import threading
 
+# 1. የቦት መረጃ (Token)
 TOKEN = '8585868416:AAH97rTQ_J8JtEcBcswvPqQNcBDV_wXi1nY'
 bot = telebot.TeleBot(TOKEN)
 IMAGE_PATH = 'bot_image.jpg'
 
-# --- 1. ዋና ማውጫ (Inline Buttons) ---
+# 2. ለ Render አስፈላጊ የሆነ ሰርቨር
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "Sofi System Solution Bot is Live!", 200
+
+# --- 3. የቁልፎች ዝግጅት (Keyboards) ---
+
 def main_inline_menu():
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
@@ -16,7 +27,6 @@ def main_inline_menu():
     )
     return markup
 
-# --- 2. ወደ ኋላ መመለሻ ቁልፎች (ሁሌም እንዲኖሩ) ---
 def back_buttons(back_to):
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
@@ -25,10 +35,10 @@ def back_buttons(back_to):
     )
     return markup
 
+# --- 4. የቦቱ ምላሾች (Handlers) ---
+
 @bot.message_handler(commands=['start'])
 def start(message):
-    # ትልልቆቹን የታች ቁልፎች ለማጥፋት
-    remove_kb = types.ReplyKeyboardRemove()
     welcome_text = (
         "Sofi System Solution\nTechnology Excellence\n\n"
         "🚀 *የዲጂታል ጉዞዎ መጀመሪያ!*\n\n"
@@ -47,7 +57,7 @@ def handle_query(call):
     chat_id = call.message.chat.id
     message_id = call.message.message_id
 
-    # --- አገልግሎቶች መረጃ ---
+    # አገልግሎቶች ዝርዝር
     services = {
         "serv_software": "💻 *የሶፍትዌር ማበልጸግ:*\nለድርጅትዎ ልዩ ፍላጎት የተሰሩ የሂሳብ፣ የክምችት እና የአስተዳደር ሲስተሞች።",
         "serv_web": "🌐 *የዌብሳይት ልማት:*\nፈጣን፣ አስተማማኝ እና በስልክም በሚያምር ሁኔታ የሚታዩ ዌብሳይቶች።",
@@ -56,17 +66,17 @@ def handle_query(call):
         "serv_bot": "🤖 *የቴሌግራም ቦቶች:*\nስራዎን የሚያቀልሉ እና ከደንበኞችዎ ጋር የሚያገናኙዎት ዘመናዊ ቦቶች።"
     }
 
-    # --- ስለ እኛ እና እሴቶቻችን ---
-    about_text = (
+    # ስለ እኛ መረጃ
+    about_intro = (
         "👨‍💼 *ሶፎኒያስ ግርማ ገ/ጻዲቅ*\n(መስራች እና ዋና ስራ አስፈጻሚ)\n\n"
         "እንኳን ወደ Sofi System Solution በሰላም መጣችሁ! ድርጅታችን የተመሰረተው የኢትዮጵያን የዲጂታል ጉዞ ወደ ላቀ ደረጃ ለማሸጋገር ነው። አላማችን ተራ የቴክኖሎጂ ውጤቶችን ማቅረብ ሳይሆን፤ የእርስዎን ድርጅት በዘመናዊ ሶፍትዌር በመደገፍ የንግድ ስኬትዎን ማፋጠን ነው።"
     )
-    
+
     values_text = (
         "💎 *የአሰራር እሴቶቻችን:*\n\n"
         "💡 *ቀጣይነት ያለው ፈጠራ:* ሁሌም አዳዲስ ቴክኖሎጂዎችን እና የተሻሉ አሰራሮችን እንተገብራለን።\n\n"
         "🤝 *ፍጹም ታማኝነት:* ግንኙነታችን በግልጽነት እና በታማኝነት ላይ የተመሰረተ ነው።\n\n"
-        "🏆 *ጥራት እና ጥንቃቄ:* ስራዎቻችን አለምአቀፍ ደረጃቸውን የጠበቁ እና ከስህተት የጸዱ ናቸው።\n\n"
+        "🏆 *ጥራት እና ጥንቃቄ:* ስራዎቻችን አለምአቀፍ ደረጃቸውን የጠበቁ ናቸው።\n\n"
         "❤️ *ደንበኛ ተኮር አገልግሎት:* ዘላቂ የሆነ የቴክኒክ ድጋፍ እንሰጣለን።\n\n"
         "🌍 *ዲጂታል ተደራሽነት:* ተመጣጣኝ ዋጋን ከጥራት ጋር እናቀርባለን።"
     )
@@ -92,16 +102,16 @@ def handle_query(call):
             types.InlineKeyboardButton("✨ እሴቶቻችን", callback_data="about_values"),
             types.InlineKeyboardButton("🏠 ወደ ዋና ማውጫ", callback_data="back_to_main")
         )
-        bot.edit_message_caption(caption=about_text, chat_id=chat_id, 
-                                 message_id=message_id, parse_mode="Markdown", reply_markup=markup)
+        bot.edit_message_caption(caption=about_intro, chat_id=chat_id, message_id=message_id, 
+                                 parse_mode="Markdown", reply_markup=markup)
 
     elif call.data == "about_vision":
-        vision = "👁️ *ራዕያችን:*\nበ2030 በኢትዮጵያ የቴክኖሎጂ ኢንደስትሪ ውስጥ ቀዳሚ እና ተመራጭ የዲጂታል መፍትሄ አቅራቢ በመሆን፤ በሚሊዮኖች የሚቆጠሩ ሰዎችን እና ድርጅቶችን ህይወት በቴክኖሎጂ ማዘመን።"
+        vision = "👁️ *ራዕያችን:*\nበ2030 በኢትዮጵያ የቴክኖሎጂ ኢንደስትሪ ውስጥ ቀዳሚ እና ተመራጭ የዲጂታል መፍትሄ አቅራቢ በመሆን፤ ህይወትን በቴክኖሎጂ ማዘመን።"
         bot.edit_message_caption(caption=vision, chat_id=chat_id, message_id=message_id, 
                                  parse_mode="Markdown", reply_markup=back_buttons("go_about"))
 
     elif call.data == "about_mission":
-        mission = "🎯 *ተልዕኳችን:*\nለደንበኞቻችን ፍላጎት ልክ የተበጁ (Custom-tailored)፣ አስተማማኝ እና ዘመናዊ ሶፍትዌሮችን በማልማት፤ የኢትዮጵያ ድርጅቶች በዲጂታል ሽግግር ተወዳዳሪ እና ስኬታማ እንዲሆኑ ማስቻል።"
+        mission = "🎯 *ተልዕኳችን:*\nለደንበኞቻችን ፍላጎት ልክ የተበጁ፣ አስተማማኝ እና ዘመናዊ ሶፍትዌሮችን በማልማት፤ የኢትዮጵያ ድርጅቶች በዲጂታል ሽግግር ስኬታማ እንዲሆኑ ማስቻል።"
         bot.edit_message_caption(caption=mission, chat_id=chat_id, message_id=message_id, 
                                  parse_mode="Markdown", reply_markup=back_buttons("go_about"))
 
@@ -112,10 +122,10 @@ def handle_query(call):
     elif call.data == "go_contact":
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(
-            types.InlineKeyboardButton("💬 መልዕክት ላክ (Direct Telegram)", url="https://t.me/Sofasofi1"),
+            types.InlineKeyboardButton("💬 መልዕክት ላክ (Telegram)", url="https://t.me/Sofasofi1"),
             types.InlineKeyboardButton("🏠 ወደ ዋና ማውጫ", callback_data="back_to_main")
         )
-        contact = "📞 *ያግኙን (Get In Touch):*\n\n📱 ስልክ: +251 947 35 95 47\n📍 ቦታ: Addis Ababa, Ethiopia\n\nለማንኛውም ጥያቄ ይጻፉልን!"
+        contact = "📞 *ያግኙን (Get In Touch):*\n\n📱 ስልክ: +251 947 35 95 47\n📍 ቦታ: Addis Ababa, Ethiopia\n📧 ኢሜይል: sofonyasg@gmail.com"
         bot.edit_message_caption(caption=contact, chat_id=chat_id, message_id=message_id, 
                                  parse_mode="Markdown", reply_markup=markup)
 
@@ -128,4 +138,15 @@ def handle_query(call):
         bot.edit_message_caption(caption=welcome, chat_id=chat_id, message_id=message_id, 
                                  parse_mode="Markdown", reply_markup=main_inline_menu())
 
-bot.polling(none_stop=True)
+# --- 5. ማስጀመሪያ (Runner) ---
+
+def run_bot():
+    bot.polling(none_stop=True)
+
+if __name__ == "__main__":
+    # ቦቱን በሌላ Thread ማስጀመር
+    threading.Thread(target=run_bot).start()
+    
+    # ሰርቨሩን ለ Render ማስጀመር (Port 10000 ለ Render default ነው)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)

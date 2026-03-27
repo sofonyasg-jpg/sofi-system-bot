@@ -8,12 +8,11 @@ import threading
 TOKEN = '8585868416:AAH97rTQ_J8JtEcBcswvPqQNcBDV_wXi1nY'
 bot = telebot.TeleBot(TOKEN)
 
-# 2. የፎቶ መገኛ መንገድ (Path) - በትክክል እንዲያገኘው
-# በምስሉ ላይ እንዳየሁት ፋይሉ 'bot_image.JPG' (Upper case) ነው
+# 2. የፎቶ መገኛ መንገድ (Path)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_PATH = os.path.join(BASE_DIR, 'bot_image.JPG')
 
-# 3. ለ Render አስፈላጊ የሆነ ሰርቨር (Flask)
+# 3. Flask ሰርቨር (ለ Render)
 app = Flask(__name__)
 
 @app.route('/')
@@ -26,7 +25,7 @@ def main_inline_menu():
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("🛠 አገልግሎቶቻችን", callback_data="go_services"),
-        types.InlineKeyboardButton("🏢 ስለ እኛ", callback_data="go_about"),
+        types.InlineKeyboardButton("🏢 ስለ እኛ (ራዕይ/ተልዕኮ)", callback_data="go_about"),
         types.InlineKeyboardButton("📞 ያግኙን", callback_data="go_contact")
     )
     return markup
@@ -34,8 +33,8 @@ def main_inline_menu():
 def back_buttons(back_to):
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("⬅️ ወደ ኋላ ተመለስ", callback_data=back_to),
-        types.InlineKeyboardButton("🏠 ወደ ዋና ማውጫ", callback_data="back_to_main")
+        types.InlineKeyboardButton("⬅️ ወደ ኋላ", callback_data=back_to),
+        types.InlineKeyboardButton("🏠 ዋና ማውጫ", callback_data="back_to_main")
     )
     return markup
 
@@ -44,25 +43,21 @@ def back_buttons(back_to):
 @bot.message_handler(commands=['start'])
 def start(message):
     welcome_text = (
-        "🚀 *Sofi System Solution*\n"
-        "Technology Excellence\n\n"
-        "እንኳን ወደ ዲጂታል አገልግሎታችን በሰላም መጡ! ጥራቱን የጠበቀ ዌብሳይት፣ "
-        "ሞባይል አፕ እና ዘመናዊ ሶፍትዌሮችን በማልማት የድርጅትዎን ስኬት እናፋጥናለን።"
+        "🚀 *እንኳን ወደ Sofi System Solution በሰላም መጡ!*\n\n"
+        "እኛ በዘመናዊ ቴክኖሎጂ የታገዘ መፍትሄ ለቢዝነስዎ የምንሰጥ ታማኝ አጋርዎ ነን። "
+        "የእርስዎ ስኬት የእኛም ስኬት ነው። በዲጂታሉ ዓለም ተወዳዳሪ እንዲሆኑ በቁርጠኝነት እንሰራለን!\n\n"
+        "— *ሶፎኒያስ ግርማ (Sofi)*, Founder & Lead Developer"
     )
     
     try:
-        # ፎቶው መኖሩን ቼክ ያደርጋል
         if os.path.exists(IMAGE_PATH):
             with open(IMAGE_PATH, 'rb') as photo:
                 bot.send_photo(message.chat.id, photo, caption=welcome_text, 
                                parse_mode="Markdown", reply_markup=main_inline_menu())
         else:
-            # ፎቶው ባይኖር እንኳ መልእክቱ መላክ አለበት (Error እንዳይፈጠር)
-            print(f"Image not found at: {IMAGE_PATH}")
             bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", 
                              reply_markup=main_inline_menu())
-    except Exception as e:
-        print(f"Error sending photo: {e}")
+    except Exception:
         bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", 
                          reply_markup=main_inline_menu())
 
@@ -70,68 +65,88 @@ def start(message):
 def handle_query(call):
     chat_id = call.message.chat.id
     message_id = call.message.message_id
+    
+    def safe_edit(text, markup):
+        try:
+            bot.edit_message_caption(caption=text, chat_id=chat_id, message_id=message_id, 
+                                     parse_mode="Markdown", reply_markup=markup)
+        except:
+            bot.edit_message_text(text=text, chat_id=chat_id, message_id=message_id, 
+                                 parse_mode="Markdown", reply_markup=markup)
 
-    services = {
-        "serv_software": "💻 *የሶፍትዌር ማበልጸግ:*\nለድርጅትዎ ልዩ ፍላጎት የተሰሩ የሂሳብ፣ የክምችት እና የአስተዳደር ሲስተሞች።",
-        "serv_web": "🌐 *የዌብሳይት ልማት:*\nፈጣን፣ አስተማማኝ እና በስልክም በሚያምር ሁኔታ የሚታዩ ዌብሳይቶች።",
-        "serv_mobile": "📱 *የሞባይል መተግበሪያ:*\nለ Android እና iOS የሚሆኑ ዘመናዊ እና ሳቢ መተግበሪያዎች።",
-        "serv_it": "🛠 *IT ድጋፍ እና ማማከር:*\nአስተማማኝ የቴክኖሎጂ ምክር እና የቴክኒክ ድጋፍ።",
-        "serv_bot": "🤖 *የቴሌግራም ቦቶች:*\nስራዎን የሚያቀልሉ እና ከደንበኞችዎ ጋር የሚያገናኙዎት ዘመናዊ ቦቶች።"
+    # ሰፊ የአገልግሎቶች ማብራሪያ
+    services_data = {
+        "serv_web": (
+            "🌐 *የዌብሳይት ልማት (Web Development)*\n\n"
+            "• ለማንኛውም ቢዝነስ የሚሆኑ ፈጣን፣ ደህንነታቸው የተጠበቀ እና በስልክም በሚያምር ሁኔታ የሚታዩ (Responsive) ዌብሳይቶች።\n"
+            "• ከቀላል ማስተዋወቂያ ድረ-ገጾች (Landing Pages) እስከ ውስብስብ የንግድ ዌብሳይቶች (E-commerce) እንሰራለን።\n"
+            "• *ልዩነታችን:* ዌብሳይቶቻችን SEO Friendly (ጎግል ላይ በቀላሉ የሚገኙ) እና እጅግ ፈጣን ናቸው።"
+        ),
+        "serv_mobile": (
+            "📱 *የሞባይል መተግበሪያ (Mobile App)*\n\n"
+            "• ለ Android እና iOS ስልኮች የሚሆኑ ዘመናዊ እና ለተጠቃሚ ምቹ የሆኑ መተግበሪያዎች።\n"
+            "• *ልዩነታችን:* ደንበኞች በቀላሉ ሊጠቀሙት የሚችሉ (UI/UX) እና ከፍተኛ ደህንነት ያላቸው አፖችን እንገነባለን።"
+        ),
+        "serv_hr": (
+            "👥 *HR & Payroll Management System*\n\n"
+            "• *ለመንግስት እና ለግል መሥሪያ ቤቶች* የሚሆን ማንኛውንም የሲስተም ስራ በብቃት እንሰራለን።\n"
+            "• የሰራተኞች መረጃ አስተዳደር፣ የደመወዝ ክፍያ፣ የዕረፍት እና የቅጥር ቁጥጥርን በዲጂታል መንገድ ያቀላጥፋል።\n"
+            "• የወረቀት ስራን በማስቀረት መረጃን በቅጽበት ለማግኘት ይረዳል።"
+        ),
+        "serv_soft": (
+            "💻 *የሶፍትዌር ማበልጸግ (Software Development)*\n\n"
+            "• የሂሳብ መቆጣጠሪያ (Accounting)፣ የንብረትና የመጋዘን አስተዳደር (Inventory) ሲስተሞች።\n"
+            "• የድርጅትዎን ውስጣዊ አሰራር የሚቆጣጠሩ እና ስራን የሚያቀልሉ ዘመናዊ ሶፍትዌሮች።"
+        ),
+        "serv_bot": (
+            "🤖 *የቴሌግራም ቦቶች (Telegram Bots)*\n\n"
+            "• ደንበኞችን 24 ሰዓት ያለ እረፍት በራስ-ሰር የሚያስተናግዱ (Auto-reply) ቦቶች።\n"
+            "• ምርት የሚሸጡ፣ መረጃ የሚሰበስቡ ወይም የቢሮ ስራን የሚያቀልሉ ቦቶች።"
+        )
     }
 
     if call.data == "go_services":
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(
-            types.InlineKeyboardButton("💻 የሶፍትዌር ማበልጸግ", callback_data="serv_software"),
             types.InlineKeyboardButton("🌐 የዌብሳይት ልማት", callback_data="serv_web"),
             types.InlineKeyboardButton("📱 የሞባይል መተግበሪያ", callback_data="serv_mobile"),
-            types.InlineKeyboardButton("🛠 IT ድጋፍ እና ማማከር", callback_data="serv_it"),
+            types.InlineKeyboardButton("👥 HR & Payroll (መንግስት/ግል)", callback_data="serv_hr"),
+            types.InlineKeyboardButton("💻 የሶፍትዌር ማበልጸግ", callback_data="serv_soft"),
             types.InlineKeyboardButton("🤖 የቴሌግራም ቦቶች", callback_data="serv_bot"),
-            types.InlineKeyboardButton("🏠 ወደ ዋና ማውጫ", callback_data="back_to_main")
+            types.InlineKeyboardButton("🏠 ዋና ማውጫ", callback_data="back_to_main")
         )
-        bot.edit_message_caption(caption="💻 *የምንሰጣቸው አገልግሎቶች:*", chat_id=chat_id, 
-                                 message_id=message_id, parse_mode="Markdown", reply_markup=markup)
+        safe_edit("🛠 *የምንሰጣቸው አገልግሎቶች:*", markup)
 
-    elif call.data == "go_contact":
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        markup.add(
-            types.InlineKeyboardButton("🔵 Facebook Page", url="https://www.facebook.com/profile.php?id=61578429291197"),
-            types.InlineKeyboardButton("📢 Telegram Channel", url="https://t.me/sofi_system_solution"),
-            types.InlineKeyboardButton("🤖 Information Bot", url="https://t.me/Sofi_System_Solution_INFObot"),
-            types.InlineKeyboardButton("💬 Direct Message", url="https://t.me/Sofasofi1"),
-            types.InlineKeyboardButton("🏠 ወደ ዋና ማውጫ", callback_data="back_to_main")
-        )
-        contact_text = (
-            "📞 *ያግኙን (Get In Touch):*\n\n"
-            "📱 ስልክ: +251 947 35 95 47\n"
-            "📍 ቦታ: Addis Ababa, Ethiopia\n"
-            "📧 ኢሜይል: sofonyasg@gmail.com\n\n"
-            "ከታች ያሉትን አዝራሮች በመጫን በሶሻል ሚዲያ ያግኙን! 👇"
-        )
-        bot.edit_message_caption(caption=contact_text, chat_id=chat_id, 
-                                 message_id=message_id, parse_mode="Markdown", reply_markup=markup)
+    elif call.data in services_data:
+        safe_edit(services_data[call.data], back_buttons("go_services"))
 
     elif call.data == "go_about":
-        about_text = "👨‍💼 *Sofi System Solution*\n\nየኢትዮጵያን የዲጂታል ጉዞ ወደ ላቀ ደረጃ ለማሸጋገር የተመሰረተ ድርጅት ነው። ጥራት እና ታማኝነት መርሀችን ነው።"
-        bot.edit_message_caption(caption=about_text, chat_id=chat_id, message_id=message_id, 
-                                 parse_mode="Markdown", reply_markup=back_buttons("back_to_main"))
+        about_text = (
+            "🏢 *ስለ Sofi System Solution*\n\n"
+            "🎯 *ተልዕኮ:* ጥራቱን የጠበቀ የሶፍትዌር ውጤቶችን በማቅረብ የድርጅቶችን አሰራር ማዘመን እና ምርታማነትን ማሳደግ።\n\n"
+            "👁 *ራዕይ:* በ2030 በኢትዮጵያ ቀዳሚው እና ተመራጭ የቴክኖሎጂ መፍትሄ አቅራቢ ድርጅት መሆን።\n\n"
+            "💎 *እሴቶች:* ታማኝነት፣ ጥራት እና ፈጠራ!"
+        )
+        safe_edit(about_text, back_buttons("back_to_main"))
 
-    elif call.data in services:
-        bot.edit_message_caption(caption=services[call.data], chat_id=chat_id, message_id=message_id, 
-                                 parse_mode="Markdown", reply_markup=back_buttons("go_services"))
+    elif call.data == "go_contact":
+        contact_text = (
+            "📞 *ያግኙን (Contact Us)*\n\n"
+            "📱 ስልክ: +251 947 35 95 47\n"
+            "📧 ኢሜይል: sofonyasg@gmail.com\n"
+            "📍 ቦታ: Addis Ababa, Ethiopia\n\n"
+            "🔗 *ማህበራዊ ሚዲያ:* [Facebook](https://www.facebook.com/profile.php?id=61578429291197) | [Telegram](https://t.me/sofi_system_solution)"
+        )
+        safe_edit(contact_text, back_buttons("back_to_main"))
 
     elif call.data == "back_to_main":
-        bot.edit_message_caption(caption="👋 እንኳን ወደ *Sofi System Solution* በሰላም መጡ!", 
-                                 chat_id=chat_id, message_id=message_id, 
-                                 parse_mode="Markdown", reply_markup=main_inline_menu())
+        safe_edit("👋 እንኳን ወደ *Sofi System Solution* በሰላም መጡ!", main_inline_menu())
 
-# --- 6. ማስጀመሪያ (Runner) ---
+# --- 6. ማስጀመሪያ ---
 def run_bot():
     bot.polling(none_stop=True)
 
 if __name__ == "__main__":
-    # ቦቱን በሌላ Thread ማስጀመር
-    threading.Thread(target=run_bot).start()
-    # Flask ሰርቨሩን ማስጀመር (ለ Render)
+    threading.Thread(target=run_bot, daemon=True).start()
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)

@@ -7,16 +7,20 @@ import threading
 # 1. የቦት መረጃ (Token)
 TOKEN = '8585868416:AAH97rTQ_J8JtEcBcswvPqQNcBDV_wXi1nY'
 bot = telebot.TeleBot(TOKEN)
-IMAGE_PATH = 'bot_image.jpg' # በ GitHub ላይ ያለህ የፎቶ ስም
 
-# 2. ለ Render አስፈላጊ የሆነ ሰርቨር (ቦቱ እንዳይዘጋ)
+# 2. የፎቶ መገኛ መንገድ (Path) - በትክክል እንዲያገኘው
+# በምስሉ ላይ እንዳየሁት ፋይሉ 'bot_image.JPG' (Upper case) ነው
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGE_PATH = os.path.join(BASE_DIR, 'bot_image.JPG')
+
+# 3. ለ Render አስፈላጊ የሆነ ሰርቨር (Flask)
 app = Flask(__name__)
 
 @app.route('/')
 def index():
     return "Sofi System Solution Bot is Live!", 200
 
-# --- 3. የቁልፎች ዝግጅት (Keyboards) ---
+# --- 4. የቁልፎች ዝግጅት (Keyboards) ---
 
 def main_inline_menu():
     markup = types.InlineKeyboardMarkup(row_width=2)
@@ -35,20 +39,30 @@ def back_buttons(back_to):
     )
     return markup
 
-# --- 4. የቦቱ ምላሾች (Handlers) ---
+# --- 5. የቦቱ ምላሾች (Handlers) ---
 
 @bot.message_handler(commands=['start'])
 def start(message):
     welcome_text = (
-        "Sofi System Solution\nTechnology Excellence\n\n"
-        "🚀 *የዲጂታል ጉዞዎ መጀመሪያ!*\n\n"
-        "ጥራቱን የጠበቀ ዌብሳይት፣ ሞባይል አፕ እና ዘመናዊ ሶፍትዌሮችን በማልማት የድርጅትዎን ስኬት እናፋጥናለን።"
+        "🚀 *Sofi System Solution*\n"
+        "Technology Excellence\n\n"
+        "እንኳን ወደ ዲጂታል አገልግሎታችን በሰላም መጡ! ጥራቱን የጠበቀ ዌብሳይት፣ "
+        "ሞባይል አፕ እና ዘመናዊ ሶፍትዌሮችን በማልማት የድርጅትዎን ስኬት እናፋጥናለን።"
     )
-    if os.path.exists(IMAGE_PATH):
-        with open(IMAGE_PATH, 'rb') as photo:
-            bot.send_photo(message.chat.id, photo, caption=welcome_text, 
-                           parse_mode="Markdown", reply_markup=main_inline_menu())
-    else:
+    
+    try:
+        # ፎቶው መኖሩን ቼክ ያደርጋል
+        if os.path.exists(IMAGE_PATH):
+            with open(IMAGE_PATH, 'rb') as photo:
+                bot.send_photo(message.chat.id, photo, caption=welcome_text, 
+                               parse_mode="Markdown", reply_markup=main_inline_menu())
+        else:
+            # ፎቶው ባይኖር እንኳ መልእክቱ መላክ አለበት (Error እንዳይፈጠር)
+            print(f"Image not found at: {IMAGE_PATH}")
+            bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", 
+                             reply_markup=main_inline_menu())
+    except Exception as e:
+        print(f"Error sending photo: {e}")
         bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", 
                          reply_markup=main_inline_menu())
 
@@ -80,7 +94,6 @@ def handle_query(call):
 
     elif call.data == "go_contact":
         markup = types.InlineKeyboardMarkup(row_width=1)
-        # የአንተ ሊንኮች እዚህ ገብተዋል
         markup.add(
             types.InlineKeyboardButton("🔵 Facebook Page", url="https://www.facebook.com/profile.php?id=61578429291197"),
             types.InlineKeyboardButton("📢 Telegram Channel", url="https://t.me/sofi_system_solution"),
@@ -112,11 +125,13 @@ def handle_query(call):
                                  chat_id=chat_id, message_id=message_id, 
                                  parse_mode="Markdown", reply_markup=main_inline_menu())
 
-# --- 5. ማስጀመሪያ (Runner) ---
+# --- 6. ማስጀመሪያ (Runner) ---
 def run_bot():
     bot.polling(none_stop=True)
 
 if __name__ == "__main__":
+    # ቦቱን በሌላ Thread ማስጀመር
     threading.Thread(target=run_bot).start()
+    # Flask ሰርቨሩን ማስጀመር (ለ Render)
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)

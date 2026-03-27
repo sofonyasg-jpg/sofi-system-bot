@@ -3,6 +3,7 @@ from telebot import types
 import os
 from flask import Flask
 import threading
+import re
 
 # 1. የቦት መረጃ (Token)
 TOKEN = '8585868416:AAH97rTQ_J8JtEcBcswvPqQNcBDV_wXi1nY'
@@ -60,6 +61,23 @@ def start(message):
     except Exception:
         bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", 
                          reply_markup=main_inline_menu())
+
+# ከዌብሳይት የሚመጣውን መልዕክት ለይቶ ምላሽ መስጫ አዝራር ማዘጋጀት
+@bot.message_handler(func=lambda message: "አዲስ መልዕክት ከዌብሳይት" in message.text)
+def web_message_reply_handler(message):
+    # ኢሜይሉን ከጽሑፉ ውስጥ ፈልጎ ማውጣት
+    email_match = re.search(r'📧 \*\*ኢሜይል:\*\* ([\w\.-]+@[\w\.-]+\.\w+)', message.text)
+    user_email = email_match.group(1) if email_match else None
+
+    markup = types.InlineKeyboardMarkup()
+    if user_email:
+        reply_button = types.InlineKeyboardButton(
+            "📧 በኢሜይል መልስ ስጥ", 
+            url=f"mailto:{user_email}"
+        )
+        markup.add(reply_button)
+    
+    bot.reply_to(message, "ለዚህ ደንበኛ መልስ ለመስጠት ከታች ያለውን አዝራር ይጫኑ፡", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
@@ -147,6 +165,10 @@ def run_bot():
     bot.polling(none_stop=True)
 
 if __name__ == "__main__":
-    threading.Thread(target=run_bot, daemon=True).start()
+    # ቦቱን በሌላ Thread ማስጀመር (ለ Render ፍጥነት)
+    t = threading.Thread(target=run_bot)
+    t.daemon = True
+    t.start()
+    
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
